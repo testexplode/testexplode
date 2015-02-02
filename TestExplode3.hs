@@ -1,10 +1,10 @@
-
+{-# LANGUAGE OverloadedStrings #-}
 {-|
 Module : TestExplode3
 Description : Definitions of part-testcases, graphs of them, and an evaluation function to generate complete testcases (strings).
 Copyright : (c) Hans-Jürgen Guth, 2014
 License : All rights reserved
-Maintainer : testexplode@freea2a.org
+Maintainer : juergen.software@freea2a.de
 Stability : experimental, no known bugs
 Portability : all
 
@@ -21,9 +21,17 @@ module TestExplode3 (
                     , longDesc
                     , condDesc
                     , codeFkt
+                    , varFkt
                     , condition
+                    , CasepartInternal(CasepartInternal)
+                    , shortDescI
+                    , longDescI
+                    , condDescI
+                    , codeFktI
+                    , conditionI
                     , CPType(NormalCP, Mark)
                     , cpType
+                    , cpTypeI
                     , DirGraph(SimpleDG, Conc, Join, StructDG)
                     , SplittedGraph(Split)
                     , Testgraph(Testgraph)
@@ -53,36 +61,54 @@ module TestExplode3 (
                     , mkGraph2Ele
                     , mkGraph2Ele0
                     ) where
-                   
+ 
+import Control.Monad.Writer 
+import qualified Data.Text.Lazy as L
+import qualified Data.Sequence as S
+import qualified Data.Foldable as DF                  
 
 -- | The part-testcase
-data Casepart a = Casepart 
+data Casepart cnf locals = Casepart 
                   { 
                     -- | short description of the part-testcase,
                     -- currently used  a) at top of a testcase to show
                     -- which path the generated testcase belongs to
                     -- and b) in the visualised graph as node-label  
-                    shortDesc :: String
+                    shortDesc :: L.Text
                     -- | long description of the part-testcase
                     -- currently generated in front of the code of the
                     -- part-testcase
-                    , longDesc :: String
+                    , longDesc :: L.Text
                     -- | description of the condition, under which
                     -- the part-testcase is valid (if not, the path with
                     -- this part-testcase will not be generated)
-                    , condDesc :: String
+                    , condDesc :: L.Text
                     -- | the actual code, which forms the part-testcase,
                     -- dependent of the "configuration" (the  "a" in 
                     -- 'Casepart a')
-                    , codeFkt :: (a -> String)
+                    , codeFkt :: (cnf -> locals -> L.Text)
+                    -- | The changes in the local variables
+                    , varFkt :: (cnf -> locals -> locals)
                     -- | the condition under which the part-testcase
                     -- is valid (if not, the path with
                     -- this part-testcase will not be generated)
-                    , condition :: (a -> Bool)
+                    , condition :: (cnf -> locals -> Bool)
                     -- | Type of the Casepart, mainly (up to now only) for
                     -- visualisation in the graph of Caseparts
                     , cpType :: CPType
                   }
+                  
+-- | The part-testcase, internal format of 'Casepart', with a writer-monad as stringFkt 
+-- instead of the varFkt and the old stringFkt
+data CasepartInternal cnf locals = CasepartInternal 
+                  { 
+                    shortDescI :: L.Text
+                    , longDescI :: L.Text
+                    , condDescI :: L.Text
+                    , codeFktI :: cnf -> locals -> Writer (S.Seq L.Text) locals
+                    , conditionI :: (cnf -> locals -> Bool)
+                    , cpTypeI :: CPType
+                  }                  
                   
 -- | Types of Caseparts, mainly (up to now only) for
 -- visualisation of the graph of Caseparts
@@ -96,16 +122,19 @@ data CPType = NormalCP | Mark
 emptyCp = Casepart {  shortDesc = ""
                     , longDesc = ""
                     , condDesc =""
-                    , codeFkt = const ""
-                    , condition = const True
+                    , codeFkt = \cnf locals -> ""
+                    , varFkt = \cnf locals -> locals 
+                    , condition = \cnf locals -> True
                     , cpType = NormalCP
                    } 
                    
 -- | Convenience Function to make easily a mark.
 --                   
-markCp str = emptyCp { shortDesc = "Mark: " ++ str,
+markCp str = emptyCp { shortDesc = L.append "Mark: " str,
                        longDesc = "Set a mark",
-                       codeFkt = const $ "  setCheckMark(\"" ++ str ++"\");\n",
+                       codeFkt = \cnf locals -> L.concat["  setCheckMark(\"",
+                                                         str,
+                                                         "\");\n"],
                        cpType = Mark
                      }                  
 -- | The heart of this module, the final function.
@@ -119,9 +148,11 @@ markCp str = emptyCp { shortDesc = "Mark: " ++ str,
 --
 -- the 
 -- list of testcases, ready to printed out in seperate files and to run.
-generate ::  [cnf] -> (cnf -> String) -> DirGraph (Casepart cnf) -> [String]
-generate cnfList cnfShow graph = 
-        [mkComment((cnfShow cnf) ++  "\n" ++  desc) ++ (stringFkt cnf) | 
+generate ::  [cnf] -> locals -> (cnf -> L.Text) -> DirGraph (CasepartInternal cnf locals) -> [L.Text]
+generate cnfList locals cnfShow graph = 
+        [L.concat[mkComment(L.concat[(cnfShow cnf),"\n", desc]),
+                  DF.fold $ snd $ runWriter (stringFkt cnf locals)
+                 ] | 
                          cnf <- cnfList,
                          -- Casepart stringFkt cond <- cpGetPaths graph,
                          -- cond cnf] 
@@ -130,19 +161,20 @@ generate cnfList cnfShow graph =
                          --   structure, uses record syntax
                          let cpList = cpGetPaths graph,
                          (stringFkt, cond, desc) <- map getCodeAndConditionAndDesc cpList, 
-                         cond cnf]
+                         cond cnf locals]
                       
 -- help function, could be made more general for
 --   arbitrary getter functions and number of getter functions 
-getCodeAndConditionAndDesc :: Casepart a -> ((a->String), (a->Bool), String)
-getCodeAndConditionAndDesc cp =  (codeFkt cp, condition cp, shortDesc cp)
+getCodeAndConditionAndDesc :: CasepartInternal a b -> 
+                              ((a -> b -> Writer (S.Seq L.Text) b), (a -> b ->Bool), L.Text)
+getCodeAndConditionAndDesc cp =  (codeFktI cp, conditionI cp, shortDescI cp)
 
 -- quick function to comment the description in ruby-style
-mkComment :: String -> String
+mkComment :: L.Text -> L.Text
 --mkComment str = let strNew = "# " ++ str
 --                in
 --                  Utils.replace "\n" "\n# " str
-mkComment str = unlines $ map ("# " ++) (lines str)
+mkComment str = L.unlines $ map (L.append "# ") (L.lines str)
 
  
 -- Now all the functions for combinating Casepart's
@@ -178,67 +210,100 @@ data SplittedGraph a = Split [DirGraph a]
 -- the end of an split is a `join`
 
 -- | Function to create a splitted graph 
-split :: [DirGraph (Casepart cnf)] -> DirGraph (Casepart cnf)
+split :: [DirGraph a] -> DirGraph a
 split x = Join (Split x)
 
 -- | Function to craete a 'Conc' of two sub-graphs
-conc :: DirGraph (Casepart cnf) -> DirGraph (Casepart cnf) -> DirGraph (Casepart cnf)
+conc :: DirGraph a -> DirGraph a -> DirGraph a
 conc a b = Conc a b
 
 -- | Infix synonym for 'conc'
-(&-&) :: DirGraph (Casepart cnf) -> DirGraph (Casepart cnf) -> DirGraph (Casepart cnf)
+(&-&) :: DirGraph a -> DirGraph a -> DirGraph a
 a &-& b = Conc a b
 
--- | Function to create a node
-mkEle :: Casepart cnf -> DirGraph (Casepart cnf)
-mkEle a = SimpleDG a
+-- | Function to create a node, Internal, with the CasepartInternal as 'a'
+mkEleInt :: a -> DirGraph a
+mkEleInt a = SimpleDG a
+
+-- | Function to create a node, function for the user
+mkEle :: Casepart cnf locals -> DirGraph (CasepartInternal cnf locals)
+mkEle cpUser = mkEleInt (CasepartInternal {shortDescI = shortDesc cpUser,
+                                   longDescI = longDesc cpUser,
+                                   condDescI = condDesc cpUser,
+                                   codeFktI = mkLogging  (codeFkt cpUser) (varFkt cpUser),
+                                   conditionI = condition cpUser,
+                                   cpTypeI    = cpType cpUser
+                                  })
+                                  
+                                  
+-- | Internal Function to build the monad-function as the new codeFkt
+mkLogging :: (cnf -> locals -> L.Text)        -- the old codeFkt
+              -> (cnf -> locals -> locals)    -- the change-function of the variables  (old varFkt)
+              ->  (cnf -> locals -> Writer (S.Seq L.Text) locals)  -- the new codeFkt
+mkLogging fText fVars =  \cnf locs ->  
+                           let ret = fVars cnf locs
+                           in
+                           do tell $ S.singleton $ fText cnf locs
+                              return ret
+
 
 
 data Expand = Expand | NotExpand | AsIs
 
 -- | Function to add a testgraph to a dirgraph
--- with converting-function f
+-- with converting-function f of the testdata ("cnfOld" resp. "cnfNew")
 -- and a Boolean, that says, if the subgraph should be 
 -- expanded or not.
 mkGraph2Ele :: (cnfNew -> cnfOld)
+               -> (localsInB -> localsInA)
+               -> (localsInB -> localsInA -> localsInB) 
                -> Expand  
-               -> Testgraph (Casepart cnfOld)
-               -> DirGraph (Casepart cnfNew) 
-mkGraph2Ele f expand tg = 
+               -> Testgraph (CasepartInternal cnfOld localsInA)
+               -> DirGraph (CasepartInternal cnfNew localsInB) 
+mkGraph2Ele fCnf fLocIn fLocOut expand tg = 
                let newTg = case expand of
                      AsIs      -> tg
                      NotExpand -> tg {docuInfo=(docuInfo tg) {toExpand=False}}
                      Expand    -> tg {docuInfo=(docuInfo tg) {toExpand=True}}
                in              
-               StructDG ( convertTestgraph f newTg)
+               StructDG ( convertTestgraph fCnf fLocIn fLocOut newTg)
                
                
 -- | Function to add a testgraph to a dirgraph
 -- without converting-function
-mkGraph2Ele0 :: Testgraph (Casepart cnf) 
-                -> DirGraph (Casepart cnf)
+mkGraph2Ele0 :: Testgraph a 
+                -> DirGraph a
 mkGraph2Ele0 tg = StructDG tg
 
 
 -- | The eval function of the EDSL. Evaluates a 'DirGraph' to the list 
 -- of all paths.
-cpGetPaths ::  DirGraph (Casepart cnf) -> [Casepart cnf]
-cpGetPaths (SimpleDG cp) = let lngDesc = longDesc cp
-                               cdFkt = codeFkt cp
+cpGetPaths ::  DirGraph (CasepartInternal cnf locals ) -> [CasepartInternal cnf locals]
+cpGetPaths (SimpleDG cp) = let lngDesc = longDescI cp
+                               cdFkt = codeFktI cp
                            in 
-          -- here insert longDesc before codeFkt
-          [cp{codeFkt = \cfg -> "\n" ++ (mkComment lngDesc ) ++ (cdFkt cfg)}] 
+          -- insert longDesc before codeFkt
+          [cp{codeFktI = \cfg locals -> do 
+                                          tell $ S.singleton "\n"
+                                          tell $ S.singleton $ mkComment lngDesc
+                                          cdFkt cfg locals
+             }] 
    
 cpGetPaths (Conc dirGraph1 dirGraph2) =
    let paths1 = cpGetPaths dirGraph1
        paths2 = cpGetPaths dirGraph2
        in 
-         [Casepart { longDesc="" -- not relevant for combined part-testcases
-                    ,condDesc="" -- not relevant for combined part-testcases
-                    ,cpType = NormalCP -- not relevant for combined part-testcases
-                    ,shortDesc = (shortDesc cp1) ++ "\n and\n" ++ (shortDesc cp2)
-                    ,codeFkt = \cnf -> ((codeFkt cp1 cnf) ++ (codeFkt cp2 cnf))
-                    ,condition = \cnf -> ((condition cp1 cnf) && (condition cp2 cnf))} |
+         [CasepartInternal { 
+                    longDescI="" -- not relevant for combined part-testcases
+                    ,condDescI="" -- not relevant for combined part-testcases
+                    ,cpTypeI = NormalCP -- not relevant for combined part-testcases
+                    ,shortDescI = L.concat[shortDescI cp1,
+                                           "\n and\n",
+                                          shortDescI cp2]
+                    ,codeFktI = \cnf locals ->  do 
+                                                vars1 <- (codeFktI cp1) cnf locals
+                                                (codeFktI cp2) cnf vars1
+                    ,conditionI = \cnf locals -> (((conditionI cp1) cnf locals) && ((conditionI cp2) cnf locals))} |
                        cp1 <- paths1,
                        cp2 <- paths2 ] -- jeder mit jedem
                        
@@ -247,40 +312,57 @@ cpGetPaths (StructDG tg) = cpGetPaths (dirGraph tg)
 cpGetPaths (Join (Split paths )) =  concat $ lcpGetPaths (Split paths)
 
 -- | the eval function of the EDSL for SplittedGraphs   
-lcpGetPaths :: SplittedGraph (Casepart cnf) -> [[Casepart cnf ]]
+lcpGetPaths :: SplittedGraph (CasepartInternal cnf locals) -> [[CasepartInternal cnf locals]]
 lcpGetPaths (Split paths) = map cpGetPaths paths
 
 
 -- | Converts between Caseparts.
 -- You need a interpreting from the target data-type to the
 -- source data-type (not vice versa) 
-convertCasepart :: (b -> a) -> Casepart a -> Casepart b
-convertCasepart f cpa = Casepart { codeFkt = (codeFkt cpa) . f,
-                                   condition = (condition cpa) . f,
-                                   shortDesc = shortDesc cpa,
-                                   longDesc = longDesc cpa,
-                                   condDesc = condDesc cpa,
-                                   cpType = cpType cpa                                  
+convertCasepart :: (cnfB -> cnfA)
+                   -> (localsInB -> localsInA)
+                   -> (localsInB -> localsInA -> localsInB)
+                   -> CasepartInternal cnfA localsInA 
+                   -> CasepartInternal cnfB localsInB
+convertCasepart fCnf fLocIn fLocOut cpa = 
+                CasepartInternal { 
+                                   codeFktI = \cnf locals -> do
+                                                               oldIn <- (codeFktI cpa) (fCnf cnf) (fLocIn locals)
+                                                               return $ fLocOut locals oldIn 
+                                                             ,
+                                   conditionI = \cnf locals -> (conditionI cpa) (fCnf cnf) (fLocIn locals),
+                                   shortDescI = shortDescI cpa,
+                                   longDescI = longDescI cpa,
+                                   condDescI = condDescI cpa,
+                                   cpTypeI = cpTypeI cpa                                  
                                  }
 -- | Converts a DirGraph, for example our testgraphs.
 -- With that function you can import other testgraphs
 -- with another set of variables.  
 -- You need a interpreting from the target data-type to the
 -- source data-type (not vice versa)                              
-convertDirGraph :: (b->a) -> DirGraph (Casepart a) -> DirGraph (Casepart b)
-convertDirGraph f (SimpleDG cp) = SimpleDG (convertCasepart f cp)
-convertDirGraph f (Conc dg1 dg2)= Conc (convertDirGraph f dg1)
-                                       (convertDirGraph f dg2)
+convertDirGraph :: (cnfB->cnfA)
+                   -> (localsInB -> localsInA)
+                   -> (localsInB -> localsInA -> localsInB) 
+                   -> DirGraph (CasepartInternal cnfA localsInA) 
+                   -> DirGraph (CasepartInternal cnfB localsInB)
+convertDirGraph f fLocIn fLocOut (SimpleDG cp) = SimpleDG (convertCasepart f fLocIn fLocOut cp)
+convertDirGraph f fLocIn fLocOut (Conc dg1 dg2)= Conc (convertDirGraph f fLocIn fLocOut dg1)
+                                       (convertDirGraph f fLocIn fLocOut dg2)
                                     
-convertDirGraph f (Join splittedGraph) = 
-       Join ( convertSplittedGraph f splittedGraph)
+convertDirGraph f fLocIn fLocOut (Join splittedGraph) = 
+       Join ( convertSplittedGraph f fLocIn fLocOut splittedGraph)
        
 
 
 -- | Converts a SplittedGraph
-convertSplittedGraph :: (b->a) -> SplittedGraph (Casepart a) -> SplittedGraph (Casepart b)
-convertSplittedGraph f (Split dirGraphs) =
-       Split (map (convertDirGraph f) dirGraphs)  
+convertSplittedGraph :: (cnfB->cnfA)
+                        -> (localsInB -> localsInA)
+                        -> (localsInB -> localsInA -> localsInB) 
+                        -> SplittedGraph (CasepartInternal cnfA localsInA) 
+                        -> SplittedGraph (CasepartInternal cnfB localsInB)
+convertSplittedGraph f fLocIn fLocOut (Split dirGraphs) =
+       Split (map (convertDirGraph f fLocIn fLocOut) dirGraphs)  
        
        
 -- Extensions to the modules
@@ -302,8 +384,20 @@ data Testgraph a =
 -- | Converts a testgraph, necessary in order to add 
 --  a different testgraph ( with another type of configuration)
 --  to a dirGraph
-convertTestgraph :: (b -> a) -> Testgraph (Casepart a) -> Testgraph (Casepart b)             
-convertTestgraph f tg = tg { dirGraph = convertDirGraph f (dirGraph tg)} 
+convertTestgraph :: (cnfB -> cnfA)
+                    -> (localsInB -> localsInA)
+                    -> (localsInB -> localsInA -> localsInB) 
+                    -> Testgraph (CasepartInternal cnfA localsInA) 
+                    -> Testgraph (CasepartInternal cnfB localsInB)             
+convertTestgraph f fLocIn fLocOut tg = tg { dirGraph = convertDirGraph f fLocIn fLocOut (dirGraph tg)} 
+
+-- | Convenience function for the case, that the return value of an 
+--   embedded 'Casepart' shall have no effect. The old local
+--   values keep unchanged.
+emptyOut :: localsInA -> localsInB -> localsInA
+emptyOut fromMaster fromEmbedded = fromMaster  
+
+
 
 -- | Looks for all embedded 'Testgraph' in a 'DirGraph',
 -- double embedded 'Testgraph' (identified by the attribute 'name')

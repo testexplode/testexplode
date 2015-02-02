@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 {-|
 Module : FinalIO
@@ -30,32 +31,32 @@ import System.Environment
 import System.Directory
 
 
-induvidualizeTestcase :: String -> (Int, String) -> (Int, String)
+induvidualizeTestcase :: L.Text -> (Int, L.Text) -> (Int, L.Text)
 induvidualizeTestcase  filename (n, str) =
-    (n, "# Testcase " ++ show n ++ "\n" ++
-        str ++
-        "\ngenerate(\"" ++
-        filename ++ "_" ++ show n ++".ssd\");")
+    (n, L.concat["# Testcase ", L.pack (show n), "\n",
+                 str,
+                 L.pack "\ngenerate(\"",
+                 filename, "_", L.pack (show n), ".ssd\");"])
         
-mkFile :: String -> (Int, String) -> IO ()  
+mkFile :: L.Text -> (Int, L.Text) -> IO ()  
 mkFile filename (n, str) = do
-    outFile <- openFile (filename ++ "_" ++ show n ++ ".rb") WriteMode
-    hPutStr outFile str
+    outFile <- openFile (L.unpack((L.concat[filename,"_", L.pack (show n), ".rb"]))) WriteMode
+    hPutStr outFile (L.unpack str)
     hClose outFile   
     
 
 -- | Takes the testcases in '[String]' and prints the
 -- strings in a subdirectory called as the executable, which
 -- calls this function, the name stripped after the first ".".    
-printTestcases :: [String] -> IO ()
+printTestcases :: [L.Text] -> IO ()
 printTestcases testcases = do 
     putStr $ show (length testcases) ++ " Testfälle\n"
     let numberedTestcases = snd $ mapAccumL (\ n str -> (n+1, (n,str))) 1 testcases
     testgraphnameCompl <- getProgName
-    let testgraphname = fst $ span  (/='.') testgraphnameCompl
+    let testgraphname = L.pack $ fst $ span  (/='.') testgraphnameCompl
     let idTestcases = map (induvidualizeTestcase testgraphname) numberedTestcases
-    createDirectoryIfMissing False testgraphname
-    let testgraphpath = testgraphname ++ "/" ++ testgraphname
+    createDirectoryIfMissing False (L.unpack testgraphname)
+    let testgraphpath = L.concat [testgraphname,"/",testgraphname]
     mapM_ (mkFile testgraphpath ) idTestcases
 
 -- | Prints the testgraph as *.dot and *.ps  in the subdirectory  

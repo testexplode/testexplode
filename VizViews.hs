@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 {-|
 Module : VizViews
@@ -30,34 +31,34 @@ defaultView :: (Graph gr) => gr nl el -> DotGraph Node
 defaultView = graphToDot nonClusteredParams
 
 -- | My own favorite view of the graph
-recordView1 :: GraphvizParams Node (Maybe (Casepart cnf), Maybe TGDocuInfo) 
+recordView1 :: GraphvizParams Node (Maybe (CasepartInternal cnf locals), Maybe TGDocuInfo) 
                                    () 
                                    () 
-                                   (Maybe (Casepart cnf), Maybe TGDocuInfo)
+                                   (Maybe (CasepartInternal cnf locals), Maybe TGDocuInfo)
 recordView1 = nonClusteredParams { fmtNode = fmtNodeMy }
 
-fmtNodeMy :: (Node, (Maybe (Casepart cnf), Maybe TGDocuInfo)) 
+fmtNodeMy :: (Node, (Maybe (CasepartInternal cnf locals), Maybe TGDocuInfo)) 
               -> Attributes
 fmtNodeMy (_, mcp) = case mcp of
               (Just cp, _) -> 
-                 let bgcolor = if cpType cp == Mark
+                 let bgcolor = if cpTypeI cp == Mark
                                then LightGoldenrod2 --YellowGreen
                                else
-                                 if condDesc cp == ""
+                                 if condDescI cp == ""
                                  then  LightGoldenrodYellow 
                                  else Yellow 
                  in              
                  let attrs = [  shape Record
                               , style filled]
                  in 
-                  if condDesc cp ==""
-                  then   [Label (RecordLabel [FlipFields[ FieldLabel (L.pack ((shortDesc cp) ))
+                  if condDescI cp ==""
+                  then   [Label (RecordLabel [FlipFields[ FieldLabel (shortDescI cp)
                                                   ]
                                        ]
                            ), fillColor bgcolor] 
                           ++ attrs
-                  else   [Label (RecordLabel [FlipFields[  FieldLabel (L.pack (condDesc cp))
-                                                   , FieldLabel (L.pack ((shortDesc cp) ))
+                  else   [Label (RecordLabel [FlipFields[  FieldLabel (condDescI cp)
+                                                   , FieldLabel (shortDescI cp)
                                                   ]
                                        ]
                            ), fillColor bgcolor] 
@@ -65,7 +66,7 @@ fmtNodeMy (_, mcp) = case mcp of
               (Nothing, Nothing) -> 
                 [ styles [filled, dotted]
                   , fillColor LightGray
-                  , toLabel ""]
+                  , toLabel L.empty]
               (Nothing, Just di) ->  -- testgraph that is not expanded
                 [shape Record,
                  styles [bold, filled],
