@@ -5,11 +5,11 @@ Module : VizViews
 Description : Defines the some different look of graphs for the module graphviz.
 Copyright : (c) Hans-Jürgen Guth, 2014
 License : All rights reserved
-Maintainer : testexplode@freea2a.org
+Maintainer : juergen.software@freea2a.de
 Stability : experimental, no known bugs
 Portability : all
 
-Here is the look of the graphs from graphvis defined.
+Here is the look of the graphs from graphviz defined.
 Feel free to add your own. For more information to the source code,
 refer to the docu of the module graphviz.
 -}

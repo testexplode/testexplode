@@ -4,7 +4,7 @@ Module : DirGraphCombine
 Description : Evaluation of DirGraph's to FGL-Graphs, so that they can evaluated by the module graphviz.
 Copyright : (c) Hans-Jürgen Guth, 2014
 License : All rights reserved
-Maintainer : testexplode@freea2a.org
+Maintainer : juergen.software@freea2a.de
 Stability : experimental, no known bugs
 Portability : all
 

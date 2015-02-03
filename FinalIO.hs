@@ -5,7 +5,7 @@ Module : FinalIO
 Description : The Final Functions for the end user. Writes many files.
 Copyright : (c) Hans-Jürgen Guth, 2014
 License : All rights reserved
-Maintainer : testexplode@freea2a.org
+Maintainer : juergen.software@freea2a.de
 Stability : experimental, no known bugs
 Portability : all
 
