@@ -2,6 +2,7 @@
 
 module Example1 where -- exports everything, thus import only qualified!
 
+import qualified Te_LA2 as Te_LA
 
 import TestExplode3
 import DirGraphCombine
@@ -142,6 +143,23 @@ checkZB("Tabuwert","off", "equalSpeed");
                      condition = \cnf hints -> (vgr2kmh cnf) >= 30, 
                      condDesc = "VGR(Infill) >= 30"
                    }
+                   
+                   
+-- the special conversion functions
+
+toTeLACnf :: Ex1Cnf -> Te_LA.TeLACnf
+toTeLACnf myCnf = Te_LA.TeLACnf {Te_LA.allowedSpeed = 25,
+                                 Te_LA.markName = "Mark_SpeedRest"
+                                } 
+                               
+useVarsTeLA :: Ex1Hints -> Te_LA.TeLAVars
+useVarsTeLA myHint = Te_LA.TeLAVars 0
+
+takeVarsTeLA :: Ex1Hints -> Te_LA.TeLAVars -> Ex1Hints
+takeVarsTeLA myHint itsHint = 
+                myHint{ distanceToZ = (distanceToZ myHint)
+                                           + (Te_LA.runnedDistance itsHint)
+                      }
 
 
 -- the complete graph of the part-testcases  
@@ -157,6 +175,8 @@ testgraph = mkEle initCp
             mkEle infillCp
             &-&
             mkEle markInfill
+            &-&
+            mkGraph2Ele toTeLACnf useVarsTeLA takeVarsTeLA NotExpand Te_LA.testgraph
             &-&
             split [mkEle curveBeginCp,
                    mkEle upgradeCp
