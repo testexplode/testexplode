@@ -3,7 +3,7 @@
 module Te_LA2 where -- exports everything, thus import only qualified!
 
 
-import TestExplode3
+import TestExplode
 import DirGraphCombine
 import VizViews
 import FinalIO
@@ -158,7 +158,7 @@ checkVcodeCp = emptyCp {
 
 endLACp = emptyCp {
           shortDesc = "Aus LA fahren und V davor und danach prüfen",
-          longDesc = "Aus LA fahren und V davor und danach prüfen",
+          -- longDesc = "Aus LA fahren und V davor und danach prüfen",
           codeFkt = \cfg locals -> [qc|
   godistance ({(runnedDistance locals) -1});
   checkV(20);

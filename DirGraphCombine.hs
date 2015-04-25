@@ -5,8 +5,7 @@ Description : Evaluation of DirGraph's to FGL-Graphs, so that they can evaluated
 Copyright : (c) Hans-Jürgen Guth, 2014
 License : All rights reserved
 Maintainer : juergen.software@freea2a.de
-Stability : experimental, no known bugs
-Portability : all
+Stability : experimental
 
 The Functions of this module enables you to generate FGL-Graphs for
 the haskell module graphviz.
@@ -14,7 +13,7 @@ the haskell module graphviz.
 
 module DirGraphCombine (mkVizGraph, mkGraphBeginEnd, VizGraph) where
 
-import TestExplode3 -- (DirGraph(SimpleDG, Conc, Join, StructDG)
+import TestExplode  -- (DirGraph(SimpleDG, Conc, Join, StructDG)
                     -- , SplittedGraph(Split)
                     -- , Testgraph(Testgraph)
                     -- , TGDocuInfo(TGDocuInfo)
@@ -28,8 +27,7 @@ import Control.Monad.State
 
 
 -- | Graph for Graphviz: a FGL-Graph
--- The 'Int' is the cluster number of the Node
-type VizGraph a = Gr (Maybe a, Maybe TGDocuInfo) ()  -- Gr ist definiert in PatriciaTree
+type VizGraph a = Gr (Maybe a, Maybe TGDocuInfo) ()  -- Gr is definied in PatriciaTree
 
 
 -- | The heart of this module: DirGraph to VizGraph.
@@ -46,9 +44,6 @@ mkVizGraph dirGraph = fst . fst $ runState (mkGraphBeginEnd dirGraph) empty
 -- not added.
 -- The output is the resulting VizGraph and a tuple of the first Node
 -- and the last Node (remember: a DirGraph has exactly one begin and one end).
--- Aditionally new in this version (28.12.2014) the state contains 
--- a cluster-Number. Every new subgraph ('StructDG') gets a induvidual
--- cluster number, that is used to print the graph in clusters. 
 mkGraphBeginEnd :: DirGraph a ->  State (VizGraph a) (VizGraph a, (Node, Node))
 mkGraphBeginEnd (SimpleDG x) =
   do
@@ -108,7 +103,6 @@ mkGraphBeginEnd (Join splittedGraph) =
      return (newGraph3, (newNode1, newNode2)) 
      
 mkGraphBeginEnd (StructDG tg) =
-   do
      case toExpand (docuInfo tg) of
        True  -> mkGraphBeginEnd (dirGraph tg)
        False -> do 

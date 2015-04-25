@@ -6,8 +6,7 @@ Description : Defines the some different look of graphs for the module graphviz.
 Copyright : (c) Hans-Jürgen Guth, 2014
 License : All rights reserved
 Maintainer : juergen.software@freea2a.de
-Stability : experimental, no known bugs
-Portability : all
+Stability : experimental
 
 Here is the look of the graphs from graphviz defined.
 Feel free to add your own. For more information to the source code,
@@ -16,7 +15,7 @@ refer to the docu of the module graphviz.
 
 module VizViews (recordView1, defaultView) where
 
-import TestExplode3
+import TestExplode
 
 import Data.Graph.Inductive.Graph
 import Data.Graph.Inductive.PatriciaTree (Gr)
@@ -73,7 +72,11 @@ fmtNodeMy (_, mcp) = case mcp of
                  fillColor Orange,
                  fontColor Blue,
                  FontName (L.pack("Times-Italic")),
-                 URL (L.pack("../subgraphs/" ++ name di ++ ".svg")),
+                 -- change ".svg" if you use other extensions for the
+                 -- picture of the graph
+                 -- change "../subgraphs/", if you use another
+                 -- subdirectory for the subgraphs
+                 URL (L.pack("../subgraphs/" ++ name di ++ ".svg")), 
                  Label (RecordLabel [FlipFields[ FieldLabel (L.pack ((name di) 
                                                              ++ "\n" 
                                                              ++ (descForNode di) ))

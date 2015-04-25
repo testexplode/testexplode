@@ -4,7 +4,7 @@ module Te52 where -- exports everything, thus import only qualified!
 
 import qualified Te_LA 
 
-import TestExplode3
+import TestExplode
 import DirGraphCombine
 import VizViews
 import FinalIO
@@ -170,7 +170,7 @@ printSubGraph path (name, testgraph) =
            
 main :: IO ()
 main = do 
-     let testcases = generate te52Testset startLocals (L.pack . show) testgraph
+     let testcases = generate "xy## " te52Testset startLocals (L.pack . show) testgraph
      printTestcases testcases
      let vizGraph = mkVizGraph testgraph
      printTestgraph recordView1 vizGraph
