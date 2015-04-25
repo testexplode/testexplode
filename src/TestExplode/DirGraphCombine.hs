@@ -13,7 +13,7 @@ the haskell module graphviz.
 
 module TestExplode.DirGraphCombine (mkVizGraph, mkGraphBeginEnd, VizGraph) where
 
-import TestExplode  -- (DirGraph(SimpleDG, Conc, Join, StructDG)
+import TestExplode.TestExplode  -- (DirGraph(SimpleDG, Conc, Join, StructDG)
                     -- , SplittedGraph(Split)
                     -- , Testgraph(Testgraph)
                     -- , TGDocuInfo(TGDocuInfo)

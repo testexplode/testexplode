@@ -3,8 +3,8 @@
 module Te_LA where -- exports everything, thus import only qualified!
 
 
-import TestExplode
-import DirGraphCombine
+import TestExplode.TestExplode
+import TestExplode.DirGraphCombine
 import VizViews
 import FinalIO
 
