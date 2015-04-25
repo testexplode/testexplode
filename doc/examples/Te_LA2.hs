@@ -3,8 +3,8 @@
 module Te_LA2 where -- exports everything, thus import only qualified!
 
 
-import TestExplode
-import DirGraphCombine
+import TestExplode.TestExplode
+import TestExplode.DirGraphCombine
 import VizViews
 import FinalIO
 
@@ -192,7 +192,7 @@ dirgraph = mkEle startRunCp
            
 main :: IO ()
 main = do 
-     let testcases = generate teLATestset (TeLAVars 0) (L.pack . show) (dirGraph testgraph)
+     let testcases = generate "# " teLATestset (TeLAVars 0) (L.pack . show) (dirGraph testgraph)
      printTestcases testcases
      let vizGraph = mkVizGraph (dirGraph testgraph)
      printTestgraph recordView1 vizGraph

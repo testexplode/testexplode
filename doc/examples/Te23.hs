@@ -1,39 +1,31 @@
-{-# LANGUAGE QuasiQuotes, ExtendedDefaultRules, OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes, ExtendedDefaultRules #-}
 
-module Te52 where -- exports everything, thus import only qualified!
+module Te23 where -- exports everything, thus import only qualified!
 
 import qualified Te_LA 
 
-import TestExplode
-import DirGraphCombine
+import TestExplode.TestExplode3
+import TestExplode.DirGraphCombine
 import VizViews
 import FinalIO
 
 
 import Text.InterpolatedString.Perl6 (qc)
-import qualified Data.Text.Lazy as L
+
 
 
 -- failure of the Speed Measurement, a short and a long time
 
 
-data Te52Cnf = 
-     Te52Cnf {  durationOfFailure :: Int
+data Te23Cnf = 
+     Te23Cnf {  durationOfFailure :: Int
                ,speed :: Int
                ,percentageOfFailure :: Int
                ,wisirNo :: Int
              }
        deriving (Show)
-
-data Te52Locals =
-     Te52Locals { currTime     :: Int, -- ms
-                  currDistance :: Int -- cm
-                }
-       deriving (Show)
-                
-startLocals = Te52Locals 0 0
-        
-te52Testset = [ Te52Cnf { durationOfFailure = dura,
+       
+te23Testset = [ Te23Cnf { durationOfFailure = dura,
                           speed = v,
                           percentageOfFailure = perc,
                           wisirNo = wiNo 
@@ -41,7 +33,7 @@ te52Testset = [ Te52Cnf { durationOfFailure = dura,
                         |
                 dura <- [0,100], --,200,999, 1001, 5000],
                 v <- [1, 10], --, 50,100],
-                perc <- [0,9,11], --9,11, 50, 100],
+                perc <- [0,1], --9,11, 50, 100],
                 wiNo <- [1,2]
                ] 
 
@@ -50,58 +42,44 @@ te52Testset = [ Te52Cnf { durationOfFailure = dura,
 
 -- Power Up
 
-startRunCode :: Te52Cnf -> Te52Locals-> L.Text
-startRunCode cfg locals = [qc|
+startRunCode :: Te23Cnf -> String
+startRunCode cfg = [qc|
   switchOn();
   testTheUnit(ok);
   accelerateTo({speed cfg});
   wait(10000)
 |]
 
-startRunVars :: Te52Cnf -> Te52Locals -> Te52Locals
-startRunVars cnf locals = locals{currTime     = (currTime locals) + 10000,
-                                 currDistance = (speed cnf) * 900 + (currDistance locals)
-                                }
-
 startRunCp = emptyCp 
              { shortDesc = "Start up and run",
                longDesc = "Switch the unit on\n Make functional test\n Accelerate to target speed",
-               codeFkt = startRunCode,
-               varFkt = startRunVars
+               codeFkt = startRunCode
              }
 
 -- Difference of the Speed measurement
              
-makeDifferenceCode :: Te52Cnf -> Te52Locals -> L.Text
-makeDifferenceCode cfg locals = [qc|
-   # states of the variables: {locals}
+makeDifferenceCode :: Te23Cnf -> String
+makeDifferenceCode cfg = [qc|
    wisirSpeed({wisirNo cfg}, { fromIntegral (speed cfg)* (1-(fromIntegral (percentageOfFailure cfg)/100.0))} );
    wait({durationOfFailure cfg});
 |]
 
-
-makeDifferenceVars cnf locals = 
-   locals{currTime = round $ fromIntegral (currTime locals) * fromIntegral (percentageOfFailure cnf)/100.0}
-
-
 makeDifferenceCp = emptyCp
              { shortDesc = "The 2 Speed measurements differ \n(or not)\nfor the given time",
                longDesc = "The 2 Speed measurements differ \n(or not)\nfor the given time",
-               codeFkt = makeDifferenceCode,
-               varFkt = makeDifferenceVars
+               codeFkt = makeDifferenceCode
              }
 
 -- Check: Error!
   
-checkNotOKCode :: Te52Cnf -> Te52Locals -> L.Text
-checkNotOKCode cfg locals = [qc|
-   # states of the variables: {locals}
+checkNotOKCode :: Te23Cnf -> String
+checkNotOKCode cfg = [qc|
    checkFailure(400, 208);
 |]
 
 
-checkNotOkCondition :: Te52Cnf -> Te52Locals -> Bool
-checkNotOkCondition cfg locals = (percentageOfFailure cfg) > 10 && 
+checkNotOkCondition :: Te23Cnf -> Bool
+checkNotOkCondition cfg = (percentageOfFailure cfg) > 10 && 
                           (durationOfFailure cfg) > 1000
 
 checkNotOkCp = emptyCp
@@ -114,14 +92,13 @@ checkNotOkCp = emptyCp
              
 -- Check: No error
             
-checkOKCode :: Te52Cnf -> Te52Locals -> L.Text
-checkOKCode cfg locals = [qc|
-   # states of the variables: {locals}
-   checkFailure(None);
+checkOKCode :: Te23Cnf -> String
+checkOKCode cfg = [qc|
+   checkFailure();
 |]
 
-checkOkCondition :: Te52Cnf -> Te52Locals -> Bool
-checkOkCondition cfg locals = not (checkNotOkCondition cfg locals ) 
+checkOkCondition :: Te23Cnf -> Bool
+checkOkCondition cfg = not (checkNotOkCondition cfg) 
 
 checkOkCp = emptyCp
              { shortDesc = "Check: No failure",
@@ -131,26 +108,21 @@ checkOkCp = emptyCp
                condDesc = "not (> 10 %, > 1 s)"
              }
 
--- the special conversion functions
+-- the special conversion function
 
-toTeLACnf :: Te52Cnf -> Te_LA.TeLACnf
-toTeLACnf te52 = Te_LA.TeLACnf {Te_LA.allowedSpeed = (speed te52),
-                                Te_LA.markName = "Mark_te52.1"
-                               } 
-useVarsTeLA :: Te52Locals -> Te_LA.TeLAVars
-useVarsTeLA te52 = Te_LA.TeLAVars 0
+toTeLA :: Te23Cnf -> Te_LA.TeLACnf
+toTeLA te23 = Te_LA.TeLACnf {Te_LA.restOfRest = (durationOfFailure te23) * (speed te23) +10,
+                             Te_LA.allowedSpeed = 10,
+                             Te_LA.markName = "Mark_te23.1"
+                            } 
 
-takeVarsTeLA :: Te52Locals -> Te_LA.TeLAVars -> Te52Locals
-takeVarsTeLA fromMaster fromEmbedded = 
-               fromMaster{ currDistance = (currDistance fromMaster)
-                                           + (1000 - (Te_LA.restOfRest fromEmbedded))
-                         }
+
                 
 -- the complete graph of the part-testcases   
                
 
 testgraph = split [ mkEle startRunCp,
-                    mkGraph2Ele toTeLACnf useVarsTeLA takeVarsTeLA NotExpand Te_LA.testgraph
+                    mkGraph2Ele toTeLA NotExpand Te_LA.testgraph
                   ]
             &-&
             mkEle makeDifferenceCp
@@ -161,7 +133,7 @@ testgraph = split [ mkEle startRunCp,
  
 
 
-printSubGraph :: String -> (String, Testgraph (CasepartInternal cnf locals )) -> IO ()
+printSubGraph :: String -> (String, Testgraph (Casepart cnf)) -> IO ()
 printSubGraph path (name, testgraph) = 
     let vizGraph = mkVizGraph (dirGraph testgraph)
     in
@@ -170,7 +142,7 @@ printSubGraph path (name, testgraph) =
            
 main :: IO ()
 main = do 
-     let testcases = generate "xy## " te52Testset startLocals (L.pack . show) testgraph
+     let testcases = generate "# " te23Testset show testgraph
      printTestcases testcases
      let vizGraph = mkVizGraph testgraph
      printTestgraph recordView1 vizGraph

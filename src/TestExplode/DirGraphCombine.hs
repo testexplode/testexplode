@@ -1,6 +1,6 @@
 
 {-|
-Module : DirGraphCombine
+Module : TestExplode.DirGraphCombine
 Description : Evaluation of DirGraph's to FGL-Graphs, so that they can evaluated by the module graphviz.
 Copyright : (c) Hans-Jürgen Guth, 2014
 License : All rights reserved
@@ -11,7 +11,7 @@ The Functions of this module enables you to generate FGL-Graphs for
 the haskell module graphviz.
 -}
 
-module DirGraphCombine (mkVizGraph, mkGraphBeginEnd, VizGraph) where
+module TestExplode.DirGraphCombine (mkVizGraph, mkGraphBeginEnd, VizGraph) where
 
 import TestExplode  -- (DirGraph(SimpleDG, Conc, Join, StructDG)
                     -- , SplittedGraph(Split)

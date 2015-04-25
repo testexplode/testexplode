@@ -13,8 +13,8 @@ This Functions generate the testcases as executables and as visualisation.
 
 module FinalIO (printTestcases, printTestgraph, printTestgraphP) where
 
-import DirGraphCombine (VizGraph)
-import TestExplode  (TGDocuInfo)
+import TestExplode.DirGraphCombine (VizGraph)
+import TestExplode.TestExplode  (TGDocuInfo)
 
 import Data.List
 

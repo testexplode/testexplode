@@ -4,8 +4,8 @@ module Example1 where -- exports everything, thus import only qualified!
 
 import qualified Te_LA2 as Te_LA
 
-import TestExplode3
-import DirGraphCombine
+import TestExplode.TestExplode
+import TestExplode.DirGraphCombine
 import VizViews
 import FinalIO
 
@@ -192,7 +192,7 @@ printSubGraph path (name, testgraph) =
            
 main :: IO ()
 main = do 
-     let testcases = generate ex1Testset (Ex1Hints 0 0) (L.pack . show) testgraph
+     let testcases = generate "# " ex1Testset (Ex1Hints 0 0) (L.pack . show) testgraph
      printTestcases testcases
      let vizGraph = mkVizGraph testgraph
      printTestgraph recordView1 vizGraph

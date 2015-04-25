@@ -15,7 +15,7 @@ refer to the docu of the module graphviz.
 
 module VizViews (recordView1, defaultView) where
 
-import TestExplode
+import TestExplode.TestExplode
 
 import Data.Graph.Inductive.Graph
 import Data.Graph.Inductive.PatriciaTree (Gr)
