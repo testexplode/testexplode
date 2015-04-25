@@ -3,7 +3,7 @@
 Module : TestExplode.TestExplode
 Description : Definitions of part-testcases, graphs of them, and an evaluation function to generate complete testcases (strings).
 Copyright : (c) Hans-Jürgen Guth, 2014
-License : All rights reserved
+License : LGPL
 Maintainer : juergen.software@freea2a.de
 Stability : experimental
 

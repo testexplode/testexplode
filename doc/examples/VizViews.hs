@@ -4,7 +4,7 @@
 Module : VizViews
 Description : Defines the some different look of graphs for the module graphviz.
 Copyright : (c) Hans-Jürgen Guth, 2014
-License : All rights reserved
+License : LGPL
 Maintainer : juergen.software@freea2a.de
 Stability : experimental
 
