@@ -1,5 +1,10 @@
 {-# LANGUAGE QuasiQuotes, ExtendedDefaultRules, OverloadedStrings #-}
 
+
+-- This is an example of the domain train control.
+-- You need not to understand every requirement,
+-- But you should learn, how a testcase in TestExplode is build
+
 module Te_LA where -- exports everything, thus import only qualified!
 
 
@@ -15,9 +20,9 @@ import qualified Data.Text.Lazy as L
 
 
 docuinfo = TGDocuInfo { descForTex = [qc|
-                           Entering a Speed Rest with all possibilities,
+                           Entering a Speed Rest (SR) by all possibile ways,
                            (checking the allowed Speed by driving faster:)
-                           possibilites:
+                           possibile ways :
                            GK 3 in SBE (entering SBE with all possibilites)
                            GK 3 in SB
                            GK2 by GKS
@@ -48,7 +53,7 @@ data TeLACnf =
        deriving (Show)
        
 teLATestset = [ TeLACnf { allowedSpeed = v,
-                          markName = "InLA"
+                          markName = "In_SR"
                         }
                         |
                 v <- [5, 10, 15]
@@ -90,7 +95,6 @@ sbeByGKS1Code cnf  locals = [qc|
   
 sbeByGKS1Cp = emptyCp
           { shortDesc = "Reach SBE with\n GK1: SBE, Z=20, VZ=80\n 5 m behind Z",
-            longDesc = "Reach SBE with\n GK1: SBE, Z=20, VZ=80\n 5 m behind Z",
             codeFkt = sbeByGKS1Code
           }
 -- SBe by end of Stoerfahrtweglaenge
@@ -102,7 +106,7 @@ sbeByUeStoerCode cfg locals = [qc|
   goDistance(1010);|]
   
 sbeByUeStoerCp = emptyCp
-          { shortDesc = "Ue-Stoer, Weg abfahren",
+          { shortDesc = "Failure in Transmission,\nRide",
             longDesc = "Fue, No Fue, 1010 m ride",
             codeFkt = sbeByUeStoerCode
           }
@@ -117,9 +121,8 @@ sendGK3code cfg locals = [qc|
 sendGK3vars cfg locals = TeLAVars 480  
 
 sendGK3Cp = emptyCp 
-          { shortDesc ="GK3-LA erreichen,\n 50 m rest bis Ziel erreicht",
-            longDesc =  "GK3-LA erreichen,\n 50 m rest bis Ziel erreicht",
-            codeFkt = sendGK3code,
+          { shortDesc ="Reach GK3-SR,\n 50 m until Z reached",
+           codeFkt = sendGK3code,
             varFkt = sendGK3vars
           }
           
@@ -132,7 +135,6 @@ enterSBcode cfg locals = [qc|
   
 enterSBCp = emptyCp {
   shortDesc = "Enter Signal Run",
-  longDesc = "Enter signal run",
   codeFkt = enterSBcode
   }
   
@@ -148,18 +150,16 @@ makeMark = emptyCp {
 -- check V
 
 checkVcodeCp = emptyCp {
-             shortDesc = "VLA über- und wieder\nunterschreiten",
-             longDesc = "VLA über- und wieder\nunterschreiten",
+             shortDesc = "VLA (V of Speed rest)\n above and down again",
              codeFkt = \cfg locals -> [qc|
   testZBv({allowedSpeed cfg});|]
              }
 
--- Bis zum ende der LA fahren     
+-- Run till end of speed rest     
 
 endLACp = emptyCp {
-          shortDesc = "Aus LA fahren und V davor und danach prüfen",
-          longDesc = "Aus LA fahren und V davor und danach prüfen",
-          codeFkt = \cfg locals -> [qc|
+          shortDesc = "leaving SR and testing V",
+           codeFkt = \cfg locals -> [qc|
   godistance ({(restOfRest locals) -1});
   checkV(20);
   godistance (20);
@@ -192,7 +192,7 @@ dirgraph = mkEle startRunCp
            
 main :: IO ()
 main = do 
-     let testcases = generate "--LA## " teLATestset (TeLAVars 0) (L.pack . show) (dirGraph testgraph)
+     let testcases = generate "# " teLATestset (TeLAVars 0) (L.pack . show) (dirGraph testgraph)
      printTestcases testcases
      let vizGraph = mkVizGraph (dirGraph testgraph)
      printTestgraph recordView1 vizGraph
