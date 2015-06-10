@@ -1,7 +1,8 @@
-README by Hans-Jürgen Guth, juergen.software@freea2a.de
------- 
+README
+------
 
 TestExplode -- let the set of your test cases explode !
+by Hans-Jürgen Guth, juergen.software@freea2a.de
 
 Motivation and what the heck this module does
 -----------------------------------------------
