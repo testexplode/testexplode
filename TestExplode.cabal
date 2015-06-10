@@ -13,13 +13,14 @@ name:                TestExplode
 version:             0.1.0.0
 
 -- A short (one-line) description of the package.
-synopsis:            Generates testcases from program-snippets in any language, with varables, that are substituted and a directed graph structure of the snippets and "test hints".
+synopsis:            Generates testcases from program-snippets
 
 -- A longer description of the package.
--- description:         
+description:         Generates testcases from program-snippets in any language, with varables, that are substituted and a directed graph structure of the snippets and "test hints"       
 
 -- URL for the project homepage or repository.
-homepage:            http://testexplode.freea2a.de
+homepage:   https://github.com/testexplode/testexplode        
+
 
 -- The license under which the package is released.
 license:             LGPL-3
@@ -43,12 +44,19 @@ build-type:          Simple
 
 -- Extra files to be distributed with the package, such as examples or a 
 -- README.
-extra-source-files:  
+extra-source-files:
+   README.md  
    doc/examples/*.hs
 
 
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.10
+
+-- The repository and tag of the sources
+source-repository this
+  type:     git
+  location: git://github.com/testexplode/testexplode.git
+  tag:      0.1.0.0
 
 
 library
